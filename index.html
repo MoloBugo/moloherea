@@ -56,6 +56,8 @@ textarea{
 <div id="seqContainer"></div>
 
 <button onclick="addSequence()">➕ Sequence</button>
+<button onclick="saveProject()">💾 Save</button>
+<button onclick="loadProject()">📂 Load</button>
 <button onclick="exportPDF()">⬇ Export PDF</button>
 
 <script>
@@ -66,7 +68,7 @@ if ('serviceWorker' in navigator) {
 
 let sequences = [];
 
-// ---------- SEQUENCE FUNCTIONS ----------
+// ---------- SEQUENCE ----------
 
 function addSequence(){
   sequences.push({
@@ -84,7 +86,7 @@ function deleteSequence(i){
   render();
 }
 
-// ---------- PLAN FUNCTIONS ----------
+// ---------- PLAN ----------
 
 function addPlan(i){
   sequences[i].plans.push({
@@ -98,7 +100,7 @@ function deletePlan(si,pi){
   render();
 }
 
-// ---------- UPDATE FUNCTIONS ----------
+// ---------- UPDATE ----------
 
 function updateField(si, field, value){
   sequences[si][field] = value;
@@ -157,7 +159,6 @@ function render(){
 
     container.appendChild(seqDiv);
 
-    // Set textarea value separately (fixes previous bug)
     seqDiv.querySelector("textarea").value = seq.action;
 
     const plansContainer = seqDiv.querySelector(`#plans-${i}`);
@@ -199,7 +200,43 @@ function render(){
   });
 }
 
-// ---------- EXPORT PDF ----------
+// ---------- SAVE ----------
+
+function saveProject(){
+  const blob = new Blob([JSON.stringify(sequences, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "shotlist-project.json";
+  a.click();
+}
+
+// ---------- LOAD ----------
+
+function loadProject(){
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json";
+
+  input.onchange = e => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      try{
+        sequences = JSON.parse(reader.result);
+        render();
+      }catch(err){
+        alert("Invalid file format.");
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
+  input.click();
+}
+
+// ---------- EXPORT ----------
 
 function exportPDF(){
 
