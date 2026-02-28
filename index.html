@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Shot List Pro PWA</title>
 
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="manifest" href="manifest.json">
 
 <style>
@@ -15,12 +15,35 @@ input, textarea{
   background:#111;color:white;border:1px solid #444;
   padding:5px;border-radius:4px;width:130px;
 }
-textarea{width:100%;min-height:60px;}
-.sequence{border:1px solid #444;padding:8px;margin:10px 0;border-radius:8px;background:#151520;}
-.plan{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;padding:6px;border-radius:6px;background:#1b1b27;}
-.header{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+textarea{
+  width:100%;
+  min-height:70px;
+  resize:vertical;
+}
+.sequence{
+  border:1px solid #444;
+  padding:8px;
+  margin:12px 0;
+  border-radius:8px;
+  background:#151520;
+}
+.plan{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin:6px 0;
+  padding:6px;
+  border-radius:6px;
+  background:#1b1b27;
+}
+.header{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  align-items:center;
+}
 @media (max-width:600px){
-  input{width:80%;}
+  input{width:100%;}
   .plan{flex-direction:column;}
   .header{flex-direction:column;align-items:flex-start;}
 }
@@ -28,20 +51,22 @@ textarea{width:100%;min-height:60px;}
 </head>
 
 <body>
+
 <h1>🎬 Shot List Pro</h1>
 <div id="seqContainer"></div>
 
 <button onclick="addSequence()">➕ Sequence</button>
-<button onclick="saveProject()">💾 Save</button>
-<button onclick="loadProject()">📂 Load</button>
-<button onclick="exportPDF()">⬇ Export Production PDF</button>
+<button onclick="exportPDF()">⬇ Export PDF</button>
 
 <script>
-if('serviceWorker' in navigator){
+
+if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js');
 }
 
-let sequences=[];
+let sequences = [];
+
+// ---------- SEQUENCE FUNCTIONS ----------
 
 function addSequence(){
   sequences.push({
@@ -54,15 +79,17 @@ function addSequence(){
   render();
 }
 
-function addPlan(i){
-  sequences[i].plans.push({
-    plan:"",axe:"",angle:"",mvt:"",son:""
-  });
+function deleteSequence(i){
+  sequences.splice(i,1);
   render();
 }
 
-function deleteSequence(i){
-  sequences.splice(i,1);
+// ---------- PLAN FUNCTIONS ----------
+
+function addPlan(i){
+  sequences[i].plans.push({
+    plan:"", axe:"", angle:"", mvt:"", son:""
+  });
   render();
 }
 
@@ -71,164 +98,156 @@ function deletePlan(si,pi){
   render();
 }
 
-function updateField(si,field,value){
-  sequences[si][field]=value;
+// ---------- UPDATE FUNCTIONS ----------
+
+function updateField(si, field, value){
+  sequences[si][field] = value;
 }
 
 function updatePlan(si,pi,field,value){
-  sequences[si].plans[pi][field]=value;
+  sequences[si].plans[pi][field] = value;
 }
 
+// ---------- RENDER ----------
+
 function render(){
-  const c=document.getElementById("seqContainer");
-  c.innerHTML="";
+  const container = document.getElementById("seqContainer");
+  container.innerHTML = "";
 
-  sequences.forEach((s,i)=>{
+  sequences.forEach((seq, i) => {
 
-    const div=document.createElement("div");
-    div.className="sequence";
+    const seqDiv = document.createElement("div");
+    seqDiv.className = "sequence";
 
-    div.innerHTML=`
+    seqDiv.innerHTML = `
       <div class="header">
         <b>Sequence ${i+1}</b>
 
         <select onchange="updateField(${i},'intExt',this.value)">
-          <option ${s.intExt=="INT"?"selected":""}>INT</option>
-          <option ${s.intExt=="EXT"?"selected":""}>EXT</option>
+          <option ${seq.intExt==="INT"?"selected":""}>INT</option>
+          <option ${seq.intExt==="EXT"?"selected":""}>EXT</option>
         </select>
 
         <select onchange="updateField(${i},'dayNight',this.value)">
-          <option ${s.dayNight=="DAY"?"selected":""}>DAY</option>
-          <option ${s.dayNight=="NIGHT"?"selected":""}>NIGHT</option>
+          <option ${seq.dayNight==="DAY"?"selected":""}>DAY</option>
+          <option ${seq.dayNight==="NIGHT"?"selected":""}>NIGHT</option>
         </select>
 
         <input placeholder="Location"
-          value="${s.location}"
+          value="${seq.location}"
           oninput="updateField(${i},'location',this.value)">
 
         <button onclick="addPlan(${i})">+ Plan</button>
         <button onclick="deleteSequence(${i})">Delete</button>
       </div>
 
-      <div style="margin-top:6px;">
-        <b>Action (What happens in this sequence)</b><br>
+      <div style="margin-top:10px;">
+        <b>Action (What happens in this sequence)</b>
         <textarea
-          oninput="updateField(${i},'action',this.value)"
-          placeholder="Describe what happens in this sequence...">${s.action}</textarea>
+          placeholder="Describe what happens..."
+          oninput="updateField(${i},'action',this.value)"></textarea>
       </div>
 
-      <div id="plans${i}"></div>
+      <div id="plans-${i}"></div>
 
-      <div style="margin-top:6px;">
+      <div style="margin-top:8px;">
         <button onclick="addPlan(${i})">+ Add Plan</button>
       </div>
     `;
 
-    c.appendChild(div);
+    container.appendChild(seqDiv);
 
-    const pDiv=div.querySelector(`#plans${i}`);
+    // Set textarea value separately (fixes previous bug)
+    seqDiv.querySelector("textarea").value = seq.action;
 
-    s.plans.forEach((p,j)=>{
+    const plansContainer = seqDiv.querySelector(`#plans-${i}`);
 
-      const row=document.createElement("div");
-      row.className="plan";
+    seq.plans.forEach((plan, j) => {
 
-      row.innerHTML=`
+      const planDiv = document.createElement("div");
+      planDiv.className = "plan";
+
+      planDiv.innerHTML = `
         <b>P${j+1}</b>
 
         <input placeholder="Le plan"
-          value="${p.plan}"
+          value="${plan.plan}"
           oninput="updatePlan(${i},${j},'plan',this.value)">
 
         <input placeholder="Axe"
-          value="${p.axe}"
+          value="${plan.axe}"
           oninput="updatePlan(${i},${j},'axe',this.value)">
 
         <input placeholder="Angle"
-          value="${p.angle}"
+          value="${plan.angle}"
           oninput="updatePlan(${i},${j},'angle',this.value)">
 
         <input placeholder="Mouvement"
-          value="${p.mvt}"
+          value="${plan.mvt}"
           oninput="updatePlan(${i},${j},'mvt',this.value)">
 
         <input placeholder="Son"
-          value="${p.son}"
+          value="${plan.son}"
           oninput="updatePlan(${i},${j},'son',this.value)">
 
         <button onclick="deletePlan(${i},${j})">Delete</button>
       `;
 
-      pDiv.appendChild(row);
+      plansContainer.appendChild(planDiv);
     });
 
   });
 }
+
+// ---------- EXPORT PDF ----------
 
 function exportPDF(){
 
-  let html=`<h1 style="text-align:center;">Shot List</h1>`;
+  let html = `<h1 style="text-align:center;">Shot List</h1>`;
 
   sequences.forEach((s,i)=>{
 
-    html+=`
-    <h2>Sequence ${i+1} — ${s.intExt} — ${s.dayNight} — ${s.location}</h2>
-    <p style="background:#eee;padding:8px;border-radius:6px;">
-      <b>Action:</b> ${s.action}
-    </p>
+    html += `
+      <h2>Sequence ${i+1} — ${s.intExt} — ${s.dayNight} — ${s.location}</h2>
 
-    <table border="1" cellspacing="0" cellpadding="6" width="100%" style="border-collapse:collapse;">
-      <tr style="background:#222;color:white;">
-        <th>Plan</th>
-        <th>Le plan</th>
-        <th>Axe</th>
-        <th>Angle</th>
-        <th>Mouvement</th>
-        <th>Son</th>
-      </tr>
+      <div style="margin-bottom:10px;padding:8px;background:#eee;border-radius:6px;">
+        <b>Action:</b><br>${s.action}
+      </div>
+
+      <table border="1" cellspacing="0" cellpadding="6" width="100%" style="border-collapse:collapse;">
+        <tr style="background:#222;color:white;">
+          <th>#</th>
+          <th>Le plan</th>
+          <th>Axe</th>
+          <th>Angle</th>
+          <th>Mouvement</th>
+          <th>Son</th>
+        </tr>
     `;
 
     s.plans.forEach((p,j)=>{
-      html+=`
-      <tr>
-        <td>${j+1}</td>
-        <td>${p.plan}</td>
-        <td>${p.axe}</td>
-        <td>${p.angle}</td>
-        <td>${p.mvt}</td>
-        <td>${p.son}</td>
-      </tr>
+      html += `
+        <tr>
+          <td>${j+1}</td>
+          <td>${p.plan}</td>
+          <td>${p.axe}</td>
+          <td>${p.angle}</td>
+          <td>${p.mvt}</td>
+          <td>${p.son}</td>
+        </tr>
       `;
     });
 
-    html+=`</table><br>`;
+    html += `</table><br>`;
   });
 
-  const w=window.open("");
-  w.document.write(`<body style="background:white;color:black;font-family:Arial;">${html}</body>`);
+  const w = window.open("");
+  w.document.write(`<body style="font-family:Arial;color:black;">${html}</body>`);
   w.print();
 }
 
-function saveProject(){
-  const blob=new Blob([JSON.stringify(sequences)]);
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="project.json";
-  a.click();
-}
-
-function loadProject(){
-  const inp=document.createElement("input");
-  inp.type="file";
-  inp.onchange=e=>{
-    const r=new FileReader();
-    r.onload=()=>{ sequences=JSON.parse(r.result); render(); };
-    r.readAsText(e.target.files[0]);
-  };
-  inp.click();
-}
-
 render();
+
 </script>
 </body>
 </html>
